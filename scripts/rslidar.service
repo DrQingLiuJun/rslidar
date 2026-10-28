@@ -1,0 +1,14 @@
+[Unit]
+Description=Three RoboSense receivers and PV-RCNN detectors
+After=network.target
+[Service]
+Type=simple
+WorkingDirectory=/home/user/carla-projects/rslidar_ws
+ExecStart=/home/user/carla-projects/rslidar_ws/run-rslidar.sh
+Restart=on-failure
+RestartSec=10
+KillSignal=SIGINT
+KillMode=mixed
+TimeoutStopSec=30
+[Install]
+WantedBy=default.target
