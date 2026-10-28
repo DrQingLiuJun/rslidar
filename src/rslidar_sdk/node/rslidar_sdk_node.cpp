@@ -31,106 +31,45 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *********************************************************************************************************************/
 
 #include "manager/node_manager.hpp"
-
-#include <rs_driver/macro/version.hpp>
-#include <signal.h>
-
-#ifdef ROS_FOUND
-#include <ros/ros.h>
-#include <ros/package.h>
-#elif ROS2_FOUND
+#include <ament_index_cpp/get_package_share_directory.hpp>
 #include <rclcpp/rclcpp.hpp>
-#endif
+#include <chrono>
+#include <csignal>
+#include <thread>
 
-using namespace robosense::lidar;
-
-#ifdef ROS2_FOUND
-std::mutex g_mtx;
-std::condition_variable g_cv;
-#endif
-
-static void sigHandler(int sig)
-{
-  RS_MSG << "RoboSense-LiDAR-Driver is stopping....." << RS_REND;
-
-#ifdef ROS_FOUND
-  ros::shutdown();
-#elif ROS2_FOUND
-  g_cv.notify_all();
-#endif
+namespace {
+volatile std::sig_atomic_t stop_requested = 0;
+void request_stop(int) { stop_requested = 1; }
 }
 
 int main(int argc, char** argv)
 {
-  signal(SIGINT, sigHandler);  ///< bind ctrl+c signal with the sigHandler function
-
-  RS_TITLE << "********************************************************" << RS_REND;
-  RS_TITLE << "**********                                    **********" << RS_REND;
-  RS_TITLE << "**********    RSLidar_SDK Version: v" << RSLIDAR_VERSION_MAJOR 
-    << "." << RSLIDAR_VERSION_MINOR 
-    << "." << RSLIDAR_VERSION_PATCH << "     **********" << RS_REND;
-  RS_TITLE << "**********                                    **********" << RS_REND;
-  RS_TITLE << "********************************************************" << RS_REND;
-
-#ifdef ROS_FOUND
-  ros::init(argc, argv, "rslidar_sdk_node", ros::init_options::NoSigintHandler);
-#elif ROS2_FOUND
-  rclcpp::init(argc, argv);
-#endif
-
-  std::string config_path;
-
-#ifdef RUN_IN_ROS_WORKSPACE
-   config_path = ros::package::getPath("rslidar_sdk");
-#else
-   config_path = (std::string)PROJECT_PATH;
-#endif
-
-   config_path += "/config/config_multi.yaml";
-
-#ifdef ROS_FOUND
-  ros::NodeHandle priv_hh("~");
-  std::string path;
-  priv_hh.param("config_path", path, std::string(""));
-#elif ROS2_FOUND
-  std::shared_ptr<rclcpp::Node> nd = rclcpp::Node::make_shared("param_handle");
-  std::string path = nd->declare_parameter<std::string>("config_path", "");
-#endif
-
-#if defined(ROS_FOUND) || defined(ROS2_FOUND)
-  if (!path.empty())
-  {
-    config_path = path;
-  }
-#endif
-
-  YAML::Node config;
+  rclcpp::init(argc, argv, rclcpp::InitOptions(), rclcpp::SignalHandlerOptions::None);
+  std::signal(SIGINT, request_stop);
+  std::signal(SIGTERM, request_stop);
+  int status = 0;
   try
   {
-    config = YAML::LoadFile(config_path);
-    RS_INFO << "--------------------------------------------------------" << RS_REND;
-    RS_INFO << "Config loaded from PATH:" << RS_REND;
-    RS_INFO << config_path << RS_REND;
-    RS_INFO << "--------------------------------------------------------" << RS_REND;
+    auto parameters = rclcpp::Node::make_shared("rslidar_sdk_parameters");
+    const auto default_config = ament_index_cpp::get_package_share_directory("rslidar_sdk") + "/config/radars.yaml";
+    const auto config_path = parameters->declare_parameter<std::string>("config_path", default_config);
+    const auto config = YAML::LoadFile(config_path);
+    RS_INFO << "Config loaded from: " << config_path << RS_REND;
+    {
+      robosense::lidar::NodeManager manager;
+      manager.init(config);
+      manager.start();
+      while (!stop_requested && rclcpp::ok())
+      {
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+      }
+    }  // Stop receivers before shutting down the ROS context.
   }
-  catch (...)
+  catch (const std::exception& error)
   {
-    RS_ERROR << "The format of config file " << config_path << " is wrong. Please check (e.g. indentation)." << RS_REND;
-    return -1;
+    RS_ERROR << "Driver failed: " << error.what() << RS_REND;
+    status = 1;
   }
-
-  std::shared_ptr<NodeManager> demo_ptr = std::make_shared<NodeManager>();
-  demo_ptr->init(config);
-  demo_ptr->start();
-
-  RS_MSG << "RoboSense-LiDAR-Driver is running....." << RS_REND;
-
-#ifdef ROS_FOUND
-  ros::spin();
-#elif ROS2_FOUND
-  std::unique_lock<std::mutex> lck(g_mtx);
-  g_cv.wait(lck);
-#endif
-
-  return 0;
+  rclcpp::shutdown();
+  return status;
 }

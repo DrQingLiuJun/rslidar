@@ -1,0 +1,20 @@
+# Python 3.10; install in .venv with --system-site-packages for ROS 2.
+numpy==1.26.4
+torch==2.3.1
+torchvision==0.18.1
+spconv-cu120==2.3.6
+numba==0.59.1
+llvmlite==0.42.0
+kornia==0.6.12
+opencv-python==4.11.0.86
+av2==0.3.6
+pyproj==3.7.1
+easydict==1.13
+PyYAML==6.0.2
+scipy==1.15.3
+tqdm==4.70.1
+tensorboardX==2.6.5
+scikit-image==0.25.2
+SharedArray==3.2.4
+pyquaternion==0.9.9
+ninja==1.13.2

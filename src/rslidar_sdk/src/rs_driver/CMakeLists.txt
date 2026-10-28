@@ -33,11 +33,11 @@ option(ENABLE_DIFOP_PARSE         "Enable parsing DIFOP Packet" OFF)
 #=============================
 #  Compile Demos, Tools, Tests
 #=============================
-option(COMPILE_DEMOS "Build rs_driver demos" OFF)
-option(COMPILE_TOOLS "Build rs_driver tools" OFF)
+set(COMPILE_DEMOS OFF)
+set(COMPILE_TOOLS OFF)
 option(COMPILE_TOOL_VIEWER "Build point cloud visualization tool" OFF)
 option(COMPILE_TOOL_PCDSAVER "Build point cloud pcd saver tool" OFF)
-option(COMPILE_TESTS "Build rs_driver unit tests" OFF)
+set(COMPILE_TESTS OFF)
 
 #========================
 #  Platform cross setup
@@ -87,7 +87,7 @@ message(=============================================================)
 set(CMAKE_INSTALL_PREFIX /usr/local)
 set(INSTALL_DRIVER_DIR ${CMAKE_INSTALL_PREFIX}/${CMAKE_PROJECT_NAME}/include)
 set(INSTALL_CMAKE_DIR ${CMAKE_INSTALL_PREFIX}/lib/cmake)
-set(DRIVER_INCLUDE_DIRS ${CMAKE_CURRENT_LIST_DIR}/src)
+set(DRIVER_INCLUDE_DIRS "${CMAKE_CURRENT_BINARY_DIR}/generated;${CMAKE_CURRENT_LIST_DIR}/src")
 set(DRIVER_CMAKE_ROOT ${CMAKE_CURRENT_LIST_DIR}/cmake)
 
 if(WIN32)
@@ -200,21 +200,21 @@ endif(${COMPILE_TESTS})
 #========================  
 configure_file(
   ${DRIVER_CMAKE_ROOT}/rs_driverConfig.cmake.in
-  ${DRIVER_CMAKE_ROOT}/rs_driverConfig.cmake 
+  ${CMAKE_CURRENT_BINARY_DIR}/rs_driverConfig.cmake
   @ONLY)
 
 configure_file(
   ${DRIVER_CMAKE_ROOT}/rs_driverConfigVersion.cmake.in
-  ${DRIVER_CMAKE_ROOT}/rs_driverConfigVersion.cmake 
+  ${CMAKE_CURRENT_BINARY_DIR}/rs_driverConfigVersion.cmake
   @ONLY)
 
 configure_file (
   ${CMAKE_CURRENT_LIST_DIR}/src/rs_driver/macro/version.hpp.in
-  ${CMAKE_CURRENT_LIST_DIR}/src/rs_driver/macro/version.hpp
+  ${CMAKE_CURRENT_BINARY_DIR}/generated/rs_driver/macro/version.hpp
   @ONLY)
 
 if(NOT ${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_CURRENT_SOURCE_DIR})
-  set(rs_driver_DIR ${DRIVER_CMAKE_ROOT} PARENT_SCOPE)
+  set(rs_driver_DIR ${CMAKE_CURRENT_BINARY_DIR} PARENT_SCOPE)
 endif()
 
 #========================
@@ -222,8 +222,8 @@ endif()
 #========================
 if(UNIX AND ${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_CURRENT_SOURCE_DIR})
 
-  install(FILES ${DRIVER_CMAKE_ROOT}/rs_driverConfig.cmake
-                ${DRIVER_CMAKE_ROOT}/rs_driverConfigVersion.cmake
+  install(FILES ${CMAKE_CURRENT_BINARY_DIR}/rs_driverConfig.cmake
+                ${CMAKE_CURRENT_BINARY_DIR}/rs_driverConfigVersion.cmake
           DESTINATION ${INSTALL_CMAKE_DIR}/${CMAKE_PROJECT_NAME})
 
   install(DIRECTORY src/

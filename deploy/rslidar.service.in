@@ -1,0 +1,14 @@
+[Unit]
+Description=Three RoboSense receivers and PV-RCNN detectors
+After=network.target
+[Service]
+Type=simple
+WorkingDirectory=@WORKSPACE@
+ExecStart=@WORKSPACE@/scripts/run.sh
+Restart=on-failure
+RestartSec=10
+KillSignal=SIGINT
+KillMode=mixed
+TimeoutStopSec=30
+[Install]
+WantedBy=default.target
