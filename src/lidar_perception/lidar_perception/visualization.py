@@ -2,55 +2,34 @@
 
 import math
 import numpy as np
-from pyproj import CRS, Transformer
 from geometry_msgs.msg import Point
 from visualization_msgs.msg import Marker, MarkerArray
 from builtin_interfaces.msg import Duration as BuiltinDuration
-from .geometry import get_quaternion_from_euler
+from .geometry import get_quaternion_from_euler, sensor_pose, enu_to_lonlat, heading_in_map
 
 
 class DetectionVisualizer:
-    def __init__(
-        self,
-        class_names,
-        publisher,
-        tracker,
-        latitude,
-        longitude,
-        offset_x,
-        offset_y,
-        rotation,
-    ):
+    def __init__(self, class_names, publisher, tracker, latitude, longitude, offset_x, offset_y, rotation, roll=0.0, pitch=0.0, height=0.0, ref_lat=34.5878275, ref_lon=113.6800472):
         self.class_names = class_names
         self.marker_pub = publisher
         self.tracker = tracker
         self.last_pos_cache = {}
-        self.CALIB_OFFSET_X = offset_x
-        self.CALIB_OFFSET_Y = offset_y
-        self.CALIB_ROTATION_DEG = rotation
-        theta = np.radians(rotation)
-        self.cos_t, self.sin_t = np.cos(theta), np.sin(theta)
-        projection = f"+proj=aeqd +lat_0={latitude} +lon_0={longitude} +x_0=0 +y_0=0 +ellps=WGS84 +units=m +no_defs"
-        self.to_wgs84 = Transformer.from_crs(
-            CRS.from_proj4(projection), CRS.from_epsg(4326), always_xy=True
-        )
+        self.rotation, self.translation = sensor_pose(latitude,longitude,offset_x,offset_y,rotation,ref_lat,ref_lon,height,roll,pitch)
+        self.ref_lat, self.ref_lon = ref_lat, ref_lon
 
     def publish(self, boxes, labels, raw_scores, header):
         f_boxes, f_labels, f_scores, f_ids = self.tracker.update(
             boxes, labels, raw_scores
         )
         marker_array = MarkerArray()
-        ros_duration = BuiltinDuration(sec=0, nanosec=200000000)
+        ros_duration = BuiltinDuration(sec=0, nanosec=600000000)
         current_frame_cache = {}
         for i in range(len(f_boxes)):
             box, label, score, t_id = (f_boxes[i], f_labels[i], f_scores[i], f_ids[i])
             lidar_x, lidar_y = (float(box[0]), float(box[1]))
-            rot_x = lidar_x * self.cos_t - lidar_y * self.sin_t
-            rot_y = lidar_x * self.sin_t + lidar_y * self.cos_t
-            final_enu_x = rot_x + self.CALIB_OFFSET_X
-            final_enu_y = rot_y + self.CALIB_OFFSET_Y
-            global_lon, global_lat = self.to_wgs84.transform(final_enu_x, final_enu_y)
-            heading_deg = math.degrees(float(box[6])) + self.CALIB_ROTATION_DEG
+            world = self.rotation @ np.asarray(box[:3], dtype=float) + self.translation
+            global_lon, global_lat = enu_to_lonlat(world[0],world[1],self.ref_lat,self.ref_lon)
+            heading_deg = heading_in_map(float(box[6]),self.rotation)
             if t_id in self.last_pos_cache:
                 prev_x, prev_y, prev_heading = self.last_pos_cache[t_id]
                 dx = lidar_x - prev_x
@@ -58,7 +37,7 @@ class DetectionVisualizer:
                 dist = math.hypot(dx, dy)
                 if dist > 0.1:
                     move_rad = math.atan2(dy, dx)
-                    move_deg = math.degrees(move_rad) + self.CALIB_ROTATION_DEG
+                    move_deg = heading_in_map(move_rad,self.rotation)
                     heading_deg = move_deg
                 else:
                     heading_deg = prev_heading

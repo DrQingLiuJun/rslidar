@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+set -eo pipefail
+source "$(dirname "${BASH_SOURCE[0]}")/env.sh"
+if [[ -z "${DISPLAY:-}" && -z "${WAYLAND_DISPLAY:-}" ]]; then echo "请在服务器图形桌面的终端运行，或使用已配置图形转发的SSH。" >&2; exit 1; fi
+exec rviz2 -d "$RSLIDAR_WORKSPACE/config/three_lidars.rviz" "$@"

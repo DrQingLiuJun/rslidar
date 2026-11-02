@@ -33,6 +33,8 @@ class DetectorNode(Node):
             "install_offset_x": 0.9268,
             "install_offset_y": 0.7425,
             "install_rotation": 127.7422,
+            "install_roll": 0.0, "install_pitch": 0.0, "install_height": 0.0,
+            "ref_lat": 34.5878275, "ref_lon": 113.6800472,
             "max_points": 80000,
         }
         for key, value in defaults.items():
@@ -58,11 +60,12 @@ class DetectorNode(Node):
             params["install_offset_x"],
             params["install_offset_y"],
             params["install_rotation"],
+            roll=params["install_roll"], pitch=params["install_pitch"], height=params["install_height"], ref_lat=params["ref_lat"], ref_lon=params["ref_lon"],
         )
         qos = QoSProfile(
             reliability=ReliabilityPolicy.BEST_EFFORT,
             history=HistoryPolicy.KEEP_LAST,
-            depth=10,
+            depth=1,  # Keep the latest cloud; inference can be slower than the sensor.
         )
         self.subscription = self.create_subscription(
             PointCloud2, params["lidar_topic"], self.callback, qos

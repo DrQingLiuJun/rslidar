@@ -1,3 +1,5 @@
+# 2026-11-02: ENU extrinsics fitted to static clouds; independent holdout checked.
+# Raw model input stays in the original sensor frame. Height is relative to the fitted plaza ground.
 reference:
   ref_lat: 34.5878275
   ref_lon: 113.6800472
@@ -11,9 +13,12 @@ sensors:
     output_topic: detection_result_1
     rsu_lat: 34.5865343
     rsu_lon: 113.6796418
-    install_offset_x: 0.9268
-    install_offset_y: 0.7425
-    install_rotation: 127.7422
+    install_offset_x: 0.0
+    install_offset_y: 0.0
+    install_rotation: 129.118494
+    install_height: 3.937352
+    install_roll: -0.188392
+    install_pitch: -2.44762
 - id: 2
   frame_id: rslidar_2
   model_config: pv_rcnn_lidar_2.yaml
@@ -22,10 +27,13 @@ sensors:
     lidar_topic: /rslidar_points_2
     output_topic: detection_result_2
     rsu_lat: 34.58681631
-    rsu_lon: 113.679107467
-    install_offset_x: 0.8673108
-    install_offset_y: 0.73356548
-    install_rotation: 129.360102
+    rsu_lon: 113.6791075
+    install_offset_x: 0.027662
+    install_offset_y: 0.023694
+    install_rotation: -95.280719
+    install_height: 3.972229
+    install_roll: -0.388349
+    install_pitch: -1.168639
 - id: 3
   frame_id: rslidar_3
   model_config: pv_rcnn_lidar_3.yaml
@@ -35,6 +43,9 @@ sensors:
     output_topic: detection_result_3
     rsu_lat: 34.58656254
     rsu_lon: 113.6788296
-    install_offset_x: 0.0
-    install_offset_y: 0.0
-    install_rotation: 0.0
+    install_offset_x: 0.042132
+    install_offset_y: 0.318996
+    install_rotation: 39.712641
+    install_height: 4.228958
+    install_roll: 179.498312
+    install_pitch: -2.044854

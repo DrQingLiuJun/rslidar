@@ -28,6 +28,7 @@ def generate_launch_description():
     for sensor in config["sensors"]:
         index = sensor["id"]
         parameters = dict(sensor["parameters"])
+        parameters.update(config["reference"])
         parameters["config_file"] = str(
             share / "config/models" / sensor["model_config"]
         )
@@ -39,6 +40,7 @@ def generate_launch_description():
             parameters["install_offset_y"],
             parameters["install_rotation"],
             **config["reference"],
+            z=parameters.get("install_height", 0.0), roll_deg=parameters.get("install_roll", 0.0), pitch_deg=parameters.get("install_pitch", 0.0),
         )
         actions.append(
             Node(
